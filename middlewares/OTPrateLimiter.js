@@ -1,8 +1,11 @@
 
 const reqMap = new Map()
-
+module.exports={
 rate_Limiter: (req,res,next)=>{
         const {email} = req.body
+         if(!email){
+            return res.status(400).json({status:false ,  message:"Invalid Request"})
+        }
         const maxAttempts = 5
         const window  = 5 * 60000
         const curTime = Date.now()
@@ -17,3 +20,4 @@ rate_Limiter: (req,res,next)=>{
         reqMap.set(email , recentReqTime)
         next()
     }
+}

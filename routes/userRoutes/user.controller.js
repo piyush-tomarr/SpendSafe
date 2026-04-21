@@ -4,7 +4,7 @@ const {pool} = require('../../db');
 const {z, success} = require('zod');
 const { validationSchema } = require("./Validators/Signup.schema");
 const {OTPValSchema} = require("./Validators/OTPvalidation.schema");
-const bcrypt = require ('bcrypt')
+const bcrypt = require ('bcrypt');
 module.exports={
     getUser:(req,res)=>{
         const data = req.body
@@ -110,6 +110,9 @@ let conn
  }
 },
 
+
+//OTP varification
+
 OTPvarify : async(req,res)=>{
 
   const response = OTPValSchema.safeParse(req.body)
@@ -182,6 +185,65 @@ OTPvarify : async(req,res)=>{
 
 
 
+//resend OTP
+
+resendOtp:async(req,res)=>{
+
+ let response = validationSchema.safeParse(req.body)
+
+ if(!response.success){
+  return res.status(400).json({success:false , message:response.error.issues[0].message})
+ }
+
+ let {email,username,password} = response.data
+
+
+ let conn
+try{
+conn = await pool.getConnection()
+ await conn.beginTransaction()
+
+
+ let temp_user_data= await getTempUser(email,conn)
+
+ if(temp_user_data.length !== 0){
+  let curtime = Date.now()
+  let temp_user_time = new Date(temp_user_data[0].created_at).getTime()
+  let timeDiff = curtime - temp_user_time
+  if(timeDiff<60000){
+    await conn.rollback()
+    return res.status(403).json({success:false , message:"Wait 1 minute before you try again"})
+  }
+   await deleteTempUser(conn,email)
+ }
+
+ let otp  = await generateOTP()
+ 
+ let hashedOTP= await hashOTP(String(otp))
+ let hashedPassword = await hashPass(password)
+ await insertTempUser(conn,username,email,hashedPassword,hashedOTP)
+ await conn.commit()
+
+ //send email function here in future ! 
+ return res.status(200).json({success:true , message:"OTP resent Successfully"})
+}
+catch{
+if(conn) await conn.rollback()
+   return res.status(500).json({success:false , message:"Internal Server Error"})
+}
+finally{
+if(conn) conn.release()
+}
+
+
+},
+
+
+
+
+
+
+//Login 
 
 loginController : async(req,res)=>{
    
