@@ -1,5 +1,7 @@
-const { handle_wallet, get_wallet, getWalletForDebit, debitAmount, insertTransaction, transactionFailed, transactionSuccess, creditAmount, getTransactionHistory } = require("./wallet.service")
+const { handle_wallet, get_wallet, debitAmount, insertTransaction, transactionFailed, transactionSuccess, creditAmount, getTransactionHistory, checkifSameTransaction, fetchWallet, insertTransactions, initialInsert, updateTransactionStatus, debit_amount, credit_amount } = require("./wallet.service")
 const {pool} = require('../../db')
+const {z} = require('zod')
+const { transactionSchema } = require("./Validators/Transaction.schema")
 module.exports= {
     handleWallet:async (req,res)=>{
         const data = req.body
@@ -36,105 +38,82 @@ module.exports= {
     },
 
 
- debitMoney:async (req,res)=>{
-    const {user_id} = req.params
-    const{amount}=req.body
-    const{request_id} = req.body
-    // const{transaction_type} = req.body
-    const conn = await pool.getConnection()
-     try{
-      if (!amount || isNaN(amount)) {
-           
-            return res.status(400).json({msg: "Invalid debit amount"})
-                 }
-          await conn.beginTransaction()
+   //new TransactionController
+   
+    transactionContoller: async(req,res)=>{
+      let {user_id}=req.params;
+      if(!user_id){
+        return res.status(403).json({success:false,message:'Invalid user id'})
+      }
+      let val_result= transactionSchema.safeParse(req.body)
+      if(!val_result.success){
+        return res.status(400).json({success:false, error:val_result.error.issues[0].message})
+      }
 
-           
+      let{amount,transaction_type,request_id,category,note} = val_result.data
 
-          const response=  await insertTransaction(conn,user_id,amount,request_id,'debit')
-          console.log(response)
-          if(response.response_type==='previous'){
-            await conn.commit()
-            return res.status(200).json({msg:response.message})
-          }
-
-          const user_amount = await getWalletForDebit(conn,user_id)
-         
-
-          if(user_amount.length===0){
-           await  transactionFailed(conn, request_id,user_id)
-             await conn.commit()
-            return res.status(404).json({msg: "Wallet Not Found"})
-           
-          }
-
-          if(user_amount[0].total_amount<amount){
-                      await  transactionFailed(conn, request_id,user_id)
-
-             await conn.commit()
-            return res.status(400).json({msg:'Insufficient Funds'})
-           
-          }
-         
-          await debitAmount(conn,user_id,amount)
-        await   transactionSuccess(conn,request_id,user_id)
-          await conn.commit()
-          return res.status(200).json({msg:'Amount debited successfully'})
-     }
-     catch(error){
-           await conn.rollback()
-           return res.status(500).json({msg:"Server Error",error:error})
-     }
-     finally{
-        conn.release()
-     }
-     },
-
-     creditMoney:async(req,res)=>{
-      const {user_id} = req.params
-      const {request_id,amount}=req.body
-      let conn = await pool.getConnection()
+     
+      let conn
       try{
-        if(!amount || isNaN(amount)){
-          return res.status(400).json({msg:'Invalid credit ammount'})
-        }
-          await conn.beginTransaction()
-
-          const result = await insertTransaction(conn,user_id,amount,request_id,'credit')
-          if(result.response_type==='previous'){
-           await  conn.commit()
-            return res.status(200).json({msg:result.message})
+         conn = await pool.getConnection()
+         await conn.beginTransaction()
+          const checkifSame = await checkifSameTransaction(conn,user_id,request_id)
+          if(checkifSame.length>0){
+            await conn.commit()
+            return res.status(200).json({success:true, message:checkifSame[0].response_json.message})
           }
-       
+
+          const userWallet= await fetchWallet(conn,user_id)
+           console.log(userWallet)
           
-           
-         const creditResult =  await creditAmount(conn,user_id,amount)
-         if(creditResult.affectedRows ===0){
-          await transactionFailed(conn,request_id,user_id)
-          await conn.commit()
-          return res.status(404).json({mgs:'No wallet found'})
+            if(userWallet.length===0){
+              await conn.rollback()
+              return res.status(403).json({success:false, message:'Wallet not found ! Please create one to continue transactions'})
+            }
+            await initialInsert(conn,user_id,amount,transaction_type,request_id,'pending',category,note)
+         if(transaction_type==='debit'){
+            
+            if(userWallet[0].total_amount<amount){
+              
+              let response={success:false, message:"Insufficient Funds"}
+              await updateTransactionStatus(conn,'failed',user_id,request_id,response)
+              await conn.commit()
+              return res.status(403).json(response)
+            }
+             await debit_amount(conn,user_id,amount)
          }
-          await transactionSuccess(conn,request_id,user_id)
-        await conn.commit()
-          return res.status(200).json({msg:'Transaction Successful'})
-        
+
+          if(transaction_type==='credit'){
+            await credit_amount(conn,user_id,amount)
+          }
+
+          
+              let response={success:true, message:"Transaction Successful"}
+              await updateTransactionStatus(conn,'success',user_id,request_id,response)
+              await conn.commit()
+              return res.status(200).json(response)
+
       }
+
+
       catch(error){
-        
-          await conn.rollback()
-          return res.status(500).json({msg:error})
+        console.log(error)
+        if(conn) await conn.rollback()
+          return res.status(500).json({success:false, message:"Internal Server Error"})
       }
+
+
       finally{
-        conn.release()
+        if(conn) conn.release()
       }
-     },
+    },
 
 
      transaction_History:async(req,res)=>{
       const {user_id} = req.params
       try{
           const transaction_history=await getTransactionHistory(user_id)
-          const history = transaction_history
+          
           if(transaction_history.length===0){
             return res.status(404).json({msg:'No Transaction Found'})
           }

@@ -6,48 +6,6 @@ const { validationSchema } = require("./Validators/Signup.schema");
 const {OTPValSchema} = require("./Validators/OTPvalidation.schema");
 const bcrypt = require ('bcrypt');
 module.exports={
-    getUser:(req,res)=>{
-        const data = req.body
-        
-       get_users(data,(err,result)=>{
-        if(err) return res.json({msg:"Unable to add user" ,err:err});
-
-        res.json({msg:'Success',data:result})
-       })
-    },
-
-    verifyOTP:(req,res)=>{
-         const data=req.body
-         console.log(data)
-       verify_otp(data,(err,response)=>{
-        if(err) return res.json({msg:'unable to verify the OTP', err:err,response_status:0})
-        if(response !=='OTP Verified') return res.status(401).json({msg:'Invalid OTP' ,response_status:0})
-        return res.json({mag:"OTP verified, Account creates successfully",response:response,response_status:1})
-       })    
-    },
-   loginUser: async (req, res) => {
-  try {
-    const data = req.body
-    const response = await login_user(data)
-
-    if (!response) {
-      return res.status(401).json({ msg: "Invalid email or password" })
-    }
-
-    return res.status(200).json({ msg: "Success", response:response, id:response.id })
-  } catch (error) {
-    return res.status(500).json({ msg: "error", err: error })
-  }
-},
-
-
-
-
-
-//New Controlers
-
-
-
 
 signupUser_controller: async(req,res)=>{
 
@@ -223,7 +181,7 @@ conn = await pool.getConnection()
  let hashedPassword = await hashPass(password)
  await insertTempUser(conn,username,email,hashedPassword,hashedOTP)
  await conn.commit()
-
+ console.log(otp)
  //send email function here in future ! 
  return res.status(200).json({success:true , message:"OTP resent Successfully"})
 }
@@ -248,8 +206,15 @@ if(conn) conn.release()
 loginController : async(req,res)=>{
    
 
-  const {username,email,password} = req.body
-       if(!username && !email ){
+  const {uid,password} = req.body
+  let username
+  let email
+  let regex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if(regex.test(uid)){
+    email=uid
+  }
+    username=uid
+       if(!username || !email ){
         return res.status(403).json({success:false , message:'invalid credentials'})
        }
        if(!password){
@@ -277,7 +242,7 @@ loginController : async(req,res)=>{
 
       let token = await generateToken(userData[0])
 
-      return res.status(200).json({success:true , message:'Login Successful' , token:token})
+      return res.status(200).json({success:true , message:'Login Successful' , token:token , id:userData[0].id})
 
 
 

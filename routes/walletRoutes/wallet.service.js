@@ -33,62 +33,60 @@ module.exports={
       // return wallet_data;
       return data
     },
-
-
-
-    getWalletForDebit:async(conn,user_id)=>{
-      const [Amount] = await conn.query(process.env.GET_WALLET_FOR_DEBIT,[user_id])
-     
-      return Amount
-    },
-
-    debitAmount:async(conn,user_id,amount)=>{
-        await conn.query(process.env.DEBIT_AMOUNT_FROM_WALLET,[amount,user_id])
-    },
-    
-    creditAmount:async(conn,user_id,amount)=>{
-         const [result] =  await conn.query(process.env.CREDIT_AMOUNT_TO_WALLET,[amount,user_id])
-         return result
-    },
-         
-    insertTransaction:async(conn,user_id,amount,request_id,transaction_type)=>{
-      try{
-            await conn.query(process.env.INSERT_INTO_TRANSACTIONS,[user_id,amount,transaction_type,request_id, JSON.stringify({"message":"Transaction Pending"})])
-            return {
-              success:true,
-              response_type:"new",
-              message:'Transaction Processing'
-            }
-      }
-      catch(error){
-        
-        if(error.code ==='ER_DUP_ENTRY'){
-           const [rows]= await conn.query(process.env.PREVIOUS_RESPONSE,[user_id,request_id])
-
-           return{
-            success:true,
-            response_type:"previous",
-            message:rows[0].response_json?.message
-
-           }
-        }
-         return error
-      }
-    },
-
-    transactionFailed:async(conn,request_id,user_id)=>{
-             await conn.query(process.env.TRANSACTION_FAILED,[JSON.stringify({"message":"Transaction Failed"}),request_id,user_id])
-    },
-    transactionSuccess:async(conn , request_id,user_id)=>{
-           await conn.query(process.env.TRANSACTION_SUCCESS,[JSON.stringify({"message":"Transaction Successful"}),request_id,user_id])
-    },
-
-
-
-
      getTransactionHistory:async(user_id)=>{
       const transaction_history = await pool.query(process.env.GET_TRANSACTION_HISTORY,[user_id])
       return transaction_history[0]
-     }
+     },
+
+
+
+    //new functions!------------------------------------------------------------------------------
+
+    checkifSameTransaction:async(conn,user_id,request_id)=>{
+      let query= 'SELECT * FROM tbl_transactions WHERE user_id =? AND request_id=?'
+      const [rows] = await conn.query(query,[user_id,request_id])
+      return rows
+
+    },
+
+    fetchWallet:async(conn,user_id)=>{
+      console.log(user_id)
+      let query='SELECT * FROM tbl_wallet WHERE user_id=? FOR UPDATE'
+      const [rows] = await conn.query(query,[user_id])
+      console.log(rows)
+      return rows
+    },
+
+     initialInsert: async(conn,user_id,amount,transaction_type,request_id,status,category,note)=>{
+     
+
+    let response={ message: "Transaction pending" };
+
+    let query='INSERT INTO tbl_transactions(user_id,amount,transaction_type,request_id,STATUS,response_json,category,note) VALUES(?,?,?,?,?,?,?,?)'
+    await conn.query(query,[user_id,amount,transaction_type,request_id,status,JSON.stringify(response),category,note])
+   },
+
+
+   updateTransactionStatus: async(conn,status,user_id,request_id ,response)=>{
+      const query=' UPDATE tbl_transactions SET STATUS=? , response_json=? WHERE user_id=? AND request_id=?'
+      await conn.query(query,[status,JSON.stringify(response),user_id,request_id])
+   },
+ 
+
+   debit_amount:async(conn,user_id,amount)=>{
+
+    let query='UPDATE tbl_wallet SET total_amount = total_amount - ? WHERE user_id = ?'
+        await conn.query(query,[amount,user_id])
+    },
+
+    credit_amount:async(conn,user_id,amount)=>{
+
+      let query='UPDATE tbl_wallet SET total_amount = total_amount+? WHERE user_id = ?'
+         await conn.query(query,[amount,user_id])
+         
+    },
+
+   
+
 }
 

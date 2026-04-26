@@ -171,10 +171,14 @@ generateotp :async()=>{
  //new Signup User
 
  usernameCheck: async(conn,username)=>{
-      console.log('username check chala')
+      
     let [userCheck] = await conn.query('SELECT username FROM tbl_users WHERE username=? LIMIT 1',[username])
     return userCheck
  },
+
+
+
+
  emailCheck: async(conn,email)=>{
     let [emailCheck] = await conn.query('SELECT email FROM tbl_users WHERE email=? LIMIT 1',[email])
     return emailCheck
@@ -187,10 +191,14 @@ generateotp :async()=>{
     const hashedPassword = await bcrypt.hash(password,saltrounds||10)
     return hashedPassword
  },
+
+
  generateOTP : async()=>{
     const otp = Math.floor(1000+Math.random()*9000)
     return otp
  },
+
+ 
  hashOTP: async(otp)=>{
    const saltrounds = 10
    const hashedOTP = await bcrypt.hash(otp,saltrounds|| 10)
