@@ -8,17 +8,17 @@ module.exports= {
         try{
 
         const response  = await handle_wallet(data)
-        return res.status(200).json({msg:"Amount Added Successfully" ,response:response})
+        return res.status(200).json({success:true , message:'ammount added successfully'})
         }
         catch(error){
-            return res.status(500).json({msg:"Something went wrong while while adding amount", err:error})
+            return res.status(500).json({success:false , message:'Error Adding Amount'})
         }
     },
         
     getWallet: async (req,res)=>{
         const {user_id} = req.query
                if (!user_id) {
-            return res.status(400).json({ msg: "user_id is required" })
+            return res.status(400).json({success:false , message:'A valid user id required ' })
     }
         console.log(user_id)
         try{
@@ -26,14 +26,15 @@ module.exports= {
                const response =  await get_wallet(user_id)
                const responseData  = response[0]
                  if(response.length===0){
-                    return res.status(204).json({msg:"No Wallet Found"})
+                    return res.status(404).json({success:false , message:' no wallet found'})
                  }
                  else{
-                    return res.status(200).json({msg:"Success", data:responseData})
+                    return res.status(200).json({success:true, data:responseData})
                  }
         }
         catch(error){
-               return res.status(500).json({msg:'Some Error Occured', error:error})
+          console.log(error)
+               return res.status(500).json({success:false , message:'Internal server error'})
         }
     },
 

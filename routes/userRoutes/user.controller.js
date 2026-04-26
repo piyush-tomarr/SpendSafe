@@ -1,5 +1,5 @@
 const sendOtpEmail = require("../../middlewares/email");
-const { get_users, verify_otp, login_user,  existingUserCheck, check_TEMP_USER, generateotp, createTempUser, checkTempUser, deleteTempUser, getTempUserOTP, getSavedUser, getTempUser, usernameCheck, emailCheck, hashPass, generateOTP, hashOTP, insertTempUser, hashPassword, rateLimiter, createUser, getusers, generateToken } = require("./user.service")
+const { get_users, verify_otp, login_user, check_TEMP_USER, generateotp, createTempUser, checkTempUser, deleteTempUser, getTempUserOTP, getSavedUser, getTempUser, usernameCheck, emailCheck, hashPass, generateOTP, hashOTP, insertTempUser, hashPassword, rateLimiter, createUser, getusers, generateToken } = require("./user.service")
 const {pool} = require('../../db');
 const {z, success} = require('zod');
 const { validationSchema } = require("./Validators/Signup.schema");
@@ -213,17 +213,21 @@ loginController : async(req,res)=>{
   if(regex.test(uid)){
     email=uid
   }
-    username=uid
-       if(!username || !email ){
+   else{
+      username=uid
+    }
+    
+       if(!username && !email ){
         return res.status(403).json({success:false , message:'invalid credentials'})
        }
+    
        if(!password){
         return res.status(403).json({success:false , message:'invalid credentials'})
        }
   let conn
   try{
        conn = await pool.getConnection()
-     
+    
 
        const userData = await getusers(conn,username,email)
 

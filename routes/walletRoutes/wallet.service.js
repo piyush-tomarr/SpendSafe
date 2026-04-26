@@ -6,13 +6,16 @@ module.exports={
         try{
           connection  = await pool.getConnection()
           await connection.beginTransaction()
-          const [users]= await connection.query(process.env.SELECT_WALLET_DETAILS,[data.id])
+          let selectWalletDetails="SELECT * FROM tbl_wallet WHERE user_id=? LIMIT 1"
+          const [users]= await connection.query(selectWalletDetails,[data.id])
           let response
           if(users.length>0){
-            response = await connection.query(process.env.UPDATE_WALLET,[data.amount,data.id])
+            let updateWallet="UPDATE tbl_wallet SET total_amount=? WHERE user_id=?"
+            response = await connection.query(updateWallet,[data.amount,data.id])
           }
           else{
-            response = await connection.query(process.env.ADD_NEW_WALLET,[data.id,data.amount])
+            let addWallet="INSERT INTO tbl_wallet (user_id,total_amount) VALUES(?,?)"
+            response = await connection.query(addWallet,[data.id,data.amount])
           }
           await connection.commit()
           return response
@@ -27,14 +30,14 @@ module.exports={
     },
 
     get_wallet: async(user_id)=>{
-      const [data] = await pool.query(process.env.SELECT_WALLET_DETAILS,[user_id])
+      let selectWalletDetails='SELECT * FROM tbl_wallet WHERE user_id=? LIMIT 1'
+      const [data] = await pool.query(selectWalletDetails,[user_id])
       console.log(data)
-      // const wallet_data = data[0]
-      // return wallet_data;
       return data
     },
      getTransactionHistory:async(user_id)=>{
-      const transaction_history = await pool.query(process.env.GET_TRANSACTION_HISTORY,[user_id])
+      let getTransactionHistory='SELECT transaction_type,amount,STATUS,created_at FROM tbl_transactions WHERE user_id=?'
+      const transaction_history = await pool.query(getTransactionHistory,[user_id])
       return transaction_history[0]
      },
 
