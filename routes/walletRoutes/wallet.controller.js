@@ -1,16 +1,21 @@
-const { handle_wallet, get_wallet, debitAmount, insertTransaction, transactionFailed, transactionSuccess, creditAmount, getTransactionHistory, checkifSameTransaction, fetchWallet, insertTransactions, initialInsert, updateTransactionStatus, debit_amount, credit_amount } = require("./wallet.service")
+const { handle_wallet, get_wallet, debitAmount, insertTransaction, transactionFailed, transactionSuccess, creditAmount, getTransactionHistory, checkifSameTransaction, fetchWallet, insertTransactions, initialInsert, updateTransactionStatus, debit_amount, credit_amount, fetchBudget } = require("./wallet.service")
 const {pool} = require('../../db')
-const {z} = require('zod')
+const {z, success} = require('zod')
 const { transactionSchema } = require("./Validators/Transaction.schema")
+
 module.exports= {
     handleWallet:async (req,res)=>{
         const data = req.body
         try{
+         if(!data.id)return res.status(400).json({success:false , message:"Id is required"})
+         if(!data.amount)return res.status(400).json({success:false , message:"Amount is required"})
+         if(data.amount===0)return res.status(400).json({success:false , message:"Amount can't be 0"})
 
         const response  = await handle_wallet(data)
-        return res.status(200).json({success:true , message:'ammount added successfully'})
+        return res.status(200).json({success:true , message:'Amount Added Successfully'})
         }
         catch(error){
+          console.log(error)
             return res.status(500).json({success:false , message:'Error Adding Amount'})
         }
     },
@@ -20,7 +25,7 @@ module.exports= {
                if (!user_id) {
             return res.status(400).json({success:false , message:'A valid user id required ' })
     }
-        console.log(user_id)
+        
         try{
      
                const response =  await get_wallet(user_id)
@@ -65,7 +70,7 @@ module.exports= {
           }
 
           const userWallet= await fetchWallet(conn,user_id)
-           console.log(userWallet)
+           
           
             if(userWallet.length===0){
               await conn.rollback()
@@ -123,6 +128,54 @@ module.exports= {
       catch(error){
         return res.status(500).json({msg:"error",error:error})
       }
+     },
+
+
+
+     walletForecastController:async(req,res)=>{
+         const {user_id} = req.params
+        if(!user_id){
+          return res.status(400).json({success:false , message:"user_id is required"})
+        }
+         let conn;
+         try{
+          conn= await pool.getConnection()
+              let wallet = await fetchWallet(conn , user_id)
+              let budget = await fetchBudget(conn, user_id)
+            if(wallet.length===0 || budget.length===0){
+              return res.status(404).json({success:false, message:"you need to set up Wallet and budget first"})
+            }
+
+            let daysRemaining, weeksRemaining, runoutDate
+              if(budget[0].budget_type==='daily'){
+                let dailybudget = budget[0].budget
+                 daysRemaining = Math.floor(wallet[0].total_amount / dailybudget)
+                 runoutDate =   new Date()
+                runoutDate.setDate(runoutDate.getDate()+daysRemaining)
+              }
+               if(budget[0].budget_type==='weekly'){
+                let weeklyBudget = budget[0].budget
+                let dailybudget = budget[0].budget/7
+                 daysRemaining = Math.floor(wallet[0].total_amount / dailybudget)
+                 weeksRemaining =  Math.floor(wallet[0].total_amount / weeklyBudget)
+                 runoutDate =   new Date()
+                runoutDate.setDate(runoutDate.getDate()+daysRemaining)
+              }
+              let response = {
+                budget_type:budget[0].budget_type,
+                daysRemaining,
+                weeksRemaining,
+                runoutDate
+              }
+              return res.status(200).json({success:true , data:response})
+         }
+         catch(error){
+            return res.status(500).json({success:false,message:"internal server error"})
+         }
+         finally{
+          conn.release()
+         }
+
      }
  }
 

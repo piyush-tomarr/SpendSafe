@@ -1,5 +1,12 @@
 const { pool } = require("../../db");
 module.exports = {
+ 
+   getUserWallet : async(user_id)=>{
+     let query ="SELECT * FROM tbl_wallet WHERE user_id=?"
+     let [userWallet] = await pool.query(query,[user_id])
+     return userWallet
+   },
+
   checkBudgetExists: async (user_id) => {
     let query="SELECT id FROM tbl_budget WHERE user_id=? LIMIT 1"
     const [budget] = await pool.query(query ,[user_id]);

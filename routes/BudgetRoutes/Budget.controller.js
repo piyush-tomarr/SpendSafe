@@ -1,19 +1,28 @@
 const { response } = require("../../app")
-const { checkBudgetExists, updateBudget, add_Budget, get_budget, dailyexpanseService, weeklyexpanseService } = require("./budget.service")
+const { checkBudgetExists, updateBudget, add_Budget, get_budget, dailyexpanseService, weeklyexpanseService, getUserWallet } = require("./budget.service")
 const {addBudgetSchema} = require("./Validators/AddBudget.schema")
 
 module.exports={
     addBudget:async(req,res)=>{
 
-
+       
         let result = addBudgetSchema.safeParse(req.body)
-
+   
         if(!result.success){
           return res.status(400).json({success:false , message:result.error.issues[0].message})
         }
+      
         let {user_id,budget,budget_type} = result.data
           try{
-       
+         
+           let userWallet = await getUserWallet(user_id)
+            if(userWallet.length===0){
+            return res.status(422).json({success:false , message:'You need to set up your wallet first'})
+           }
+
+           if(userWallet[0].total_amount<budget){
+            return res.status(422).json({success:false , message:'Budget can not exceed the amount in the wallet'})
+           }
             
              const budgetExixts = await checkBudgetExists(user_id)
            if(budgetExixts.length===0){
@@ -36,7 +45,7 @@ module.exports={
        const {user_id} = req.query
            if(!user_id) return res.status(400).json({success:false , message:"missing user id"})
           try{
-              const userBudget = await get_budget(user_id)
+              const [userBudget] = await get_budget(user_id)
               if(userBudget.length===0){
                 return res.status(404).json({success:false , message:"Budget Not found! please create one "})
               }

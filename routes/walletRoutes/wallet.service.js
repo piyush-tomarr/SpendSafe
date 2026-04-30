@@ -32,7 +32,7 @@ module.exports={
     get_wallet: async(user_id)=>{
       let selectWalletDetails='SELECT * FROM tbl_wallet WHERE user_id=? LIMIT 1'
       const [data] = await pool.query(selectWalletDetails,[user_id])
-      console.log(data)
+  
       return data
     },
      getTransactionHistory:async(user_id)=>{
@@ -53,10 +53,10 @@ module.exports={
     },
 
     fetchWallet:async(conn,user_id)=>{
-      console.log(user_id)
+    
       let query='SELECT * FROM tbl_wallet WHERE user_id=? FOR UPDATE'
       const [rows] = await conn.query(query,[user_id])
-      console.log(rows)
+      
       return rows
     },
 
@@ -89,6 +89,14 @@ module.exports={
          
     },
 
+
+
+    fetchBudget:async(conn,user_id)=>{
+      let query = "SELECT * FROM tbl_budget WHERE user_id=?"
+
+      let [rows] = await conn.query(query,[user_id])
+      return rows
+    }
    
 
 }
