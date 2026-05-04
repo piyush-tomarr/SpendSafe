@@ -63,7 +63,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "alert",
+        status: "Alert",
+        message:"You have exceeded your Daily budget limit"
       };
     }
    else if(percentage>80){
@@ -72,7 +73,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "warning",
+        status: "Warning",
+        message:"You are about to reach your Daily Budget limit"
       };
       
    }
@@ -82,7 +84,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "ok",
+        status: "Relax",
+         message:'You are under your Daily Limit'
       };
    }
   },
@@ -106,7 +109,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "alert",
+        status: "Alert",
+        message:"You have exceeded your Weekly budget limit"
       };
     }
    else if(percentage>80){
@@ -115,7 +119,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "warning",
+        status: "Warning",
+        message:"You are about to reach your Weekly Budget limit"
       };
       
    }
@@ -125,7 +130,8 @@ module.exports = {
         budget: budget,
         spent: expanse,
         percentage: percentage,
-        status: "ok",
+        status: "Relax",
+        message:'You are under your Weekly Limit'
       };
    }
   },

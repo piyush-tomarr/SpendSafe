@@ -35,9 +35,9 @@ module.exports={
   
       return data
     },
-     getTransactionHistory:async(user_id)=>{
-      let getTransactionHistory='SELECT transaction_type,amount,STATUS,created_at FROM tbl_transactions WHERE user_id=?'
-      const transaction_history = await pool.query(getTransactionHistory,[user_id])
+     getTransactionHistory:async(user_id ,startDate , endDate)=>{
+      let getTransactionHistory="SELECT * FROM tbl_transactions WHERE user_id=? AND created_at >= ? AND created_at<= ? "
+      const transaction_history = await pool.query(getTransactionHistory,[user_id , startDate , endDate])
       return transaction_history[0]
      },
 

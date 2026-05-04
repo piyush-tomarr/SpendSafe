@@ -1,5 +1,5 @@
 const { response } = require("../../app")
-const { checkBudgetExists, updateBudget, add_Budget, get_budget, dailyexpanseService, weeklyexpanseService, getUserWallet } = require("./budget.service")
+const { checkBudgetExists, updateBudget, add_Budget, get_budget, dailyexpanseService, weeklyexpanseService, getUserWallet, weeklyExpanseService } = require("./budget.service")
 const {addBudgetSchema} = require("./Validators/AddBudget.schema")
 
 module.exports={
@@ -77,7 +77,7 @@ module.exports={
          return res.status(200).json({success:true,response:response})
       }
        if(budget_type==='weekly'){
-        const response = await weeklyexpanseService(user_id)
+        const response = await weeklyExpanseService(user_id)
          return res.status(200).json({success:true,response:response})
       }
      }

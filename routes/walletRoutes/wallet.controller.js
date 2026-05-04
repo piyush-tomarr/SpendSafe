@@ -117,8 +117,14 @@ module.exports= {
 
      transaction_History:async(req,res)=>{
       const {user_id} = req.params
+      const { startDate, endDate } = req.query;
+       if (!startDate || !endDate) {
+    return res.status(400).json({ msg: 'startDate and endDate are required' });
+  }
       try{
-          const transaction_history=await getTransactionHistory(user_id)
+          
+
+          const transaction_history=await getTransactionHistory(user_id,startDate , endDate)
           
           if(transaction_history.length===0){
             return res.status(404).json({msg:'No Transaction Found'})
